@@ -1,29 +1,6 @@
 import { z } from "zod";
 import { BlogStatus, BlogCategory } from "./blog.interface";
 
-// Blog tag validation schema
-const blogTagSchema = z.object({
-  name: z.string({
-    message: "Tag name is required"
-  }).min(1, "Tag name cannot be empty").max(50, "Tag name cannot exceed 50 characters"),
-  
-  slug: z.string({
-    message: "Tag slug is required"
-  }).min(1, "Tag slug cannot be empty").max(50, "Tag slug cannot exceed 50 characters")
-    .regex(/^[a-z0-9-]+$/, "Tag slug can only contain lowercase letters, numbers, and hyphens"),
-  
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color").optional()
-});
-
-// Blog SEO validation schema
-const blogSEOSchema = z.object({
-  metaTitle: z.string().max(60, "Meta title cannot exceed 60 characters").optional(),
-  metaDescription: z.string().max(160, "Meta description cannot exceed 160 characters").optional(),
-  keywords: z.array(z.string().max(50, "Each keyword cannot exceed 50 characters")).max(10, "Cannot have more than 10 keywords").optional(),
-  ogImage: z.string().url("OG image must be a valid URL").optional(),
-  canonicalUrl: z.string().url("Canonical URL must be a valid URL").optional()
-});
-
 // Create blog validation schema (Admin only)
 const createBlogValidationSchema = z.object({
   body: z.object({
@@ -39,31 +16,21 @@ const createBlogValidationSchema = z.object({
       message: "Blog content is required"
     }).min(100, "Content must be at least 100 characters long").max(50000, "Content cannot exceed 50,000 characters"),
     
-    featuredImage: z.string().url("Featured image must be a valid URL").optional(),
-    
-    gallery: z.array(z.string().url("Each gallery image must be a valid URL")).max(10, "Cannot have more than 10 gallery images").optional(),
-    
     category: z.nativeEnum(BlogCategory, {
       message: "Please select a valid blog category"
     }),
     
-    tags: z.array(blogTagSchema)
+    tags: z.array(z.string({
+      message: "Tag must be a string"
+    }).trim().min(1, "Tag cannot be empty").max(50, "Tag cannot exceed 50 characters"))
       .min(1, "At least one tag is required")
-      .max(5, "Cannot have more than 5 tags"),
+      .max(10, "Cannot have more than 10 tags"),
     
     status: z.nativeEnum(BlogStatus, {
       message: "Please select a valid blog status"
     }).optional(),
     
-    isFeature: z.boolean().optional(),
-    
-    isPinned: z.boolean().optional(),
-    
-    seo: blogSEOSchema.optional(),
-    
-    publishedAt: z.string().datetime("Invalid datetime format").optional(),
-    
-    scheduledAt: z.string().datetime("Invalid datetime format").optional()
+    isFeature: z.boolean().optional()
   })
 });
 
@@ -76,35 +43,43 @@ const updateBlogValidationSchema = z.object({
     
     content: z.string().min(100, "Content must be at least 100 characters long").max(50000, "Content cannot exceed 50,000 characters").optional(),
     
-    featuredImage: z.string().url("Featured image must be a valid URL").optional(),
-    
-    gallery: z.array(z.string().url("Each gallery image must be a valid URL")).max(10, "Cannot have more than 10 gallery images").optional(),
-    
     category: z.nativeEnum(BlogCategory, {
       message: "Please select a valid blog category"
     }).optional(),
     
-    tags: z.array(blogTagSchema)
+    tags: z.array(z.string().trim().min(1, "Tag cannot be empty").max(50, "Tag cannot exceed 50 characters"))
       .min(1, "At least one tag is required")
-      .max(5, "Cannot have more than 5 tags").optional(),
+      .max(10, "Cannot have more than 10 tags").optional(),
     
     status: z.nativeEnum(BlogStatus, {
       message: "Please select a valid blog status"
     }).optional(),
     
-    isFeature: z.boolean().optional(),
-    
-    isPinned: z.boolean().optional(),
-    
-    seo: blogSEOSchema.optional(),
-    
-    publishedAt: z.string().datetime("Invalid datetime format").optional(),
-    
-    scheduledAt: z.string().datetime("Invalid datetime format").optional()
-  }).optional() // Make entire body optional to allow file-only updates
+    isFeature: z.boolean().optional()
+  }).optional() // Make entire body optional to allow photo-only updates
 }).passthrough(); // Allow additional fields like file metadata
+
+// Comment validation schema (Public)
+const createCommentValidationSchema = z.object({
+  body: z.object({
+    author: z.string({
+      message: "Author name is required"
+    }).trim().min(2, "Author name must be at least 2 characters long").max(100, "Author name cannot exceed 100 characters"),
+    
+    email: z.string({
+      message: "Email is required"
+    }).email("Please provide a valid email address"),
+    
+    website: z.string().url("Please provide a valid website URL").optional().or(z.literal("")),
+    
+    content: z.string({
+      message: "Comment content is required"
+    }).trim().min(5, "Comment must be at least 5 characters long").max(1000, "Comment cannot exceed 1000 characters")
+  })
+});
 
 export const BlogValidation = {
   createBlogValidationSchema,
-  updateBlogValidationSchema
+  updateBlogValidationSchema,
+  createCommentValidationSchema
 };
