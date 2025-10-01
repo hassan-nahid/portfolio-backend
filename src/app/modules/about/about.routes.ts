@@ -3,6 +3,7 @@ import { AboutController } from "./about.controller";
 import { checkAuth } from "../../middleware/CheckAuth";
 import { validateRequest } from "../../middleware/ValidateRequest";
 import { AboutValidation } from "./about.validation";
+import { multerUpload } from "../../config/multer.config";
 
 const router = express.Router();
 
@@ -10,6 +11,7 @@ const router = express.Router();
 router.post(
   "/create",
   checkAuth("OWNER"),
+  multerUpload.single("photo"),
   validateRequest(AboutValidation.createAboutValidationSchema),
   AboutController.createAbout
 );
@@ -27,6 +29,7 @@ router.get(
 router.patch(
   "/:id",
   checkAuth("OWNER"),
+  multerUpload.single("photo"),
   validateRequest(AboutValidation.updateAboutValidationSchema),
   AboutController.updateAbout
 );

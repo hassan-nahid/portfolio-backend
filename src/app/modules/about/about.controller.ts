@@ -4,7 +4,12 @@ import { sendResponse } from "../../utils/sendResponse";
 import { AboutService } from "./about.service";
 
 const createAbout = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const result = await AboutService.createAbout(req.body);
+  const aboutData = {
+    ...req.body,
+    photo: req.file?.path || ""
+  };
+  
+  const result = await AboutService.createAbout(aboutData);
 
   sendResponse(res, {
     statusCode: 201,
@@ -39,7 +44,12 @@ const getAboutById = catchAsync(async (req: Request, res: Response, next: NextFu
 
 const updateAbout = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
-  const result = await AboutService.updateAbout(id, req.body);
+  const updateData = {
+    ...req.body,
+    ...(req.file && { photo: req.file.path })
+  };
+  
+  const result = await AboutService.updateAbout(id, updateData);
 
   sendResponse(res, {
     statusCode: 200,
