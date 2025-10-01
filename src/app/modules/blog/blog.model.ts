@@ -61,7 +61,8 @@ const blogSchema = new Schema<IBlog>({
     unique: true,
     trim: true,
     lowercase: true,
-    maxlength: 100
+    maxlength: 100,
+    index: true
   },
   excerpt: {
     type: String,
@@ -154,7 +155,7 @@ blogSchema.pre('save', async function(next) {
 });
 
 // Indexes for better query performance
-blogSchema.index({ slug: 1 });
+// Note: slug index is already created by unique: true property
 blogSchema.index({ status: 1, publishedAt: -1 });
 blogSchema.index({ category: 1, status: 1 });
 blogSchema.index({ author: 1, status: 1 });

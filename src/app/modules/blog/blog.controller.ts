@@ -9,7 +9,7 @@ import { BlogService } from "./blog.service";
 const createBlog = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const blogData = {
     ...req.body,
-    author: req.user?.id, // Admin ID from JWT token
+    author: req.user?.userId, // Admin ID from JWT token
     featuredImage: req.file?.path || undefined
   };
 

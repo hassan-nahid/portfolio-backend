@@ -16,23 +16,38 @@ const createBlogValidationSchema = z.object({
       message: "Blog content is required"
     }).min(100, "Content must be at least 100 characters long").max(50000, "Content cannot exceed 50,000 characters"),
     
-    category: z.nativeEnum(BlogCategory, {
+    category: z.string().refine((val) => Object.values(BlogCategory).includes(val as BlogCategory), {
       message: "Please select a valid blog category"
     }),
     
-    tags: z.array(z.string({
-      message: "Tag must be a string"
-    }).trim().min(1, "Tag cannot be empty").max(50, "Tag cannot exceed 50 characters"))
-      .min(1, "At least one tag is required")
-      .max(10, "Cannot have more than 10 tags"),
+    tags: z.union([
+      z.array(z.string()).min(1, "At least one tag is required").max(10, "Cannot have more than 10 tags"),
+      z.string().transform((str) => {
+        try {
+          const parsed = JSON.parse(str);
+          if (Array.isArray(parsed)) return parsed;
+          return [str];
+        } catch {
+          return str.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+        }
+      })
+    ]).refine((tags) => Array.isArray(tags) && tags.length >= 1 && tags.length <= 10, {
+      message: "Must have 1-10 tags"
+    }),
     
-    status: z.nativeEnum(BlogStatus, {
-      message: "Please select a valid blog status"
-    }).optional(),
+    status: z.union([
+      z.nativeEnum(BlogStatus),
+      z.string().refine((val) => Object.values(BlogStatus).includes(val as BlogStatus), {
+        message: "Please select a valid blog status"
+      })
+    ]).optional(),
     
-    isFeature: z.boolean().optional()
-  })
-});
+    isFeature: z.union([
+      z.boolean(),
+      z.string().transform((val) => val === 'true' || val === '1')
+    ]).optional()
+  }).optional()
+}).passthrough();
 
 // Update blog validation schema (Admin only)
 const updateBlogValidationSchema = z.object({

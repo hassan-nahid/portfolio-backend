@@ -7,7 +7,12 @@ import { projectServices } from "./project.service"
 
 
 const createProject = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const project = await projectServices.createProject(req.body)
+    const projectData = {
+        ...req.body,
+        image: req.file?.path || req.body.image // Use uploaded file path or existing image URL
+    }
+    
+    const project = await projectServices.createProject(projectData)
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -49,7 +54,17 @@ const getProjectById = catchAsync(async (req: Request, res: Response, next: Next
 
 const updateProject = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params
-    const project = await projectServices.updateProject(id, req.body)
+    
+    const updateData = {
+        ...req.body
+    }
+    
+    // Add image path if new image is uploaded
+    if (req.file?.path) {
+        updateData.image = req.file.path
+    }
+    
+    const project = await projectServices.updateProject(id, updateData)
     
     if (!project) {
         return sendResponse(res, {

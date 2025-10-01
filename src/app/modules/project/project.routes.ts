@@ -3,13 +3,15 @@ import { checkAuth } from "../../middleware/CheckAuth";
 import { validateRequest } from "../../middleware/ValidateRequest";
 import { ProjectValidation } from "./project.validation";
 import { projectControllers } from "./project.controller";
+import { multerUpload } from "../../config/multer.config";
 
 const router = Router()
 
-// Create project (protected route)
+// Create project with image upload (protected route)
 router.post("/create", 
+    checkAuth("OWNER"),
+    multerUpload.single("image"),
     validateRequest(ProjectValidation.createProjectValidationSchema), 
-    checkAuth("OWNER"), 
     projectControllers.createProject
 )
 
@@ -19,10 +21,11 @@ router.get("/", projectControllers.getAllProjects)
 // Get single project by ID (public route)
 router.get("/:id", projectControllers.getProjectById)
 
-// Update project (protected route)
+// Update project with optional image upload (protected route)
 router.put("/:id", 
+    checkAuth("OWNER"),
+    multerUpload.single("image"),
     validateRequest(ProjectValidation.updateProjectValidationSchema), 
-    checkAuth("OWNER"), 
     projectControllers.updateProject
 )
 
