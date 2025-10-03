@@ -7,7 +7,14 @@ import { multerUpload } from "../../config/multer.config";
 
 const router = Router()
 
-// Create project with image upload (protected route)
+// Create project with image upload (protected route) - both routes for compatibility
+router.post("/", 
+    checkAuth("OWNER"),
+    multerUpload.single("image"),
+    validateRequest(ProjectValidation.createProjectValidationSchema), 
+    projectControllers.createProject
+)
+
 router.post("/create", 
     checkAuth("OWNER"),
     multerUpload.single("image"),

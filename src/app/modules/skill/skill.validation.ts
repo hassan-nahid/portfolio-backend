@@ -17,7 +17,7 @@ const skillLevelEnum = z.enum([
 const createSkillValidationSchema = z.object({
     skill: z.string().min(1, 'Skill name is required'),
     level: skillLevelEnum,
-    logo: z.string().min(1, 'Logo is required').optional(), // Optional when uploading file
+    logo: z.string().optional(), // Optional since multer handles file upload or URL can be provided
     category: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid category ID format'),
 });
 
@@ -25,7 +25,7 @@ const createSkillValidationSchema = z.object({
 const updateSkillValidationSchema = z.object({
     skill: z.string().min(1, 'Skill name is required').optional(),
     level: skillLevelEnum.optional(),
-    logo: z.string().min(1, 'Logo is required').optional(),
+    logo: z.string().optional(),
     category: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid category ID format').optional(),
 });
 

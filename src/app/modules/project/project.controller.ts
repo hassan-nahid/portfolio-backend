@@ -12,6 +12,16 @@ const createProject = catchAsync(async (req: Request, res: Response, next: NextF
         image: req.file?.path || req.body.image // Use uploaded file path or existing image URL
     }
     
+    // Ensure image is provided for new projects
+    if (!projectData.image) {
+        return sendResponse(res, {
+            success: false,
+            statusCode: httpStatus.BAD_REQUEST,
+            message: "Image is required. Please provide an image URL or upload a file.",
+            data: null
+        })
+    }
+    
     const project = await projectServices.createProject(projectData)
     sendResponse(res, {
         success: true,
@@ -55,18 +65,10 @@ const getProjectById = catchAsync(async (req: Request, res: Response, next: Next
 const updateProject = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params
     
-    const updateData = {
-        ...req.body
-    }
+    // First, get the existing project to preserve current image if no new one is provided
+    const existingProject = await projectServices.getProjectById(id)
     
-    // Add image path if new image is uploaded
-    if (req.file?.path) {
-        updateData.image = req.file.path
-    }
-    
-    const project = await projectServices.updateProject(id, updateData)
-    
-    if (!project) {
+    if (!existingProject) {
         return sendResponse(res, {
             success: false,
             statusCode: httpStatus.NOT_FOUND,
@@ -74,6 +76,25 @@ const updateProject = catchAsync(async (req: Request, res: Response, next: NextF
             data: null
         })
     }
+    
+    const updateData = {
+        ...req.body
+    }
+    
+    // Handle image update logic:
+    // 1. If new file is uploaded, use the file path
+    // 2. If image URL is provided in body and not empty, use that
+    // 3. If no image provided or empty, remove from updateData to preserve existing
+    if (req.file?.path) {
+        updateData.image = req.file.path
+    } else if (req.body.image && req.body.image.trim() !== '') {
+        updateData.image = req.body.image
+    } else {
+        // Remove image field from update to preserve existing image
+        delete updateData.image
+    }
+    
+    const project = await projectServices.updateProject(id, updateData)
     
     sendResponse(res, {
         success: true,

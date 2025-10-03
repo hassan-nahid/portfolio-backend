@@ -9,12 +9,14 @@ export enum Category {
 export interface IProject {
     _id?: Types.ObjectId;
     title: string,
-    image: string,
+    image?: string,
     category: Category,
     description: string,
+    features?: string[], // Array of key features/highlights
     demoLink?: string,
     githubFrontend?: string,
     githubBackend?: string,
+    githubFullStack?: string,
     stacks: Types.ObjectId[];
     createdAt?: Date;
     updatedAt?: Date;

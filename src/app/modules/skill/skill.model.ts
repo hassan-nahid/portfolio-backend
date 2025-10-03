@@ -14,7 +14,7 @@ export interface ISkill {
     _id?: Types.ObjectId;
     skill: string;
     level: SkillLevel;
-    logo: string;
+    logo?: string;
     category: Types.ObjectId;
 }
 
@@ -25,7 +25,7 @@ const SkillSchema = new Schema<ISkill>({
     required: true,
     enum: Object.values(SkillLevel)
   },
-  logo: { type: String, required: true },
+  logo: { type: String, required: false },
   category: { type: Schema.Types.ObjectId, ref: "SkillCategory" },
 });
 

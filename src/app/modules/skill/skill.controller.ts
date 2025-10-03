@@ -96,6 +96,16 @@ const createSkill = catchAsync(async (req: Request, res: Response, next: NextFun
         skillData.logo = (req.file as any).path
     }
     
+    // Ensure logo is provided for new skills
+    if (!skillData.logo) {
+        return sendResponse(res, {
+            success: false,
+            statusCode: httpStatus.BAD_REQUEST,
+            message: "Logo is required. Please provide a logo URL or upload a file.",
+            data: null
+        })
+    }
+    
     const skill = await skillServices.createSkill(skillData)
     sendResponse(res, {
         success: true,
@@ -138,16 +148,11 @@ const getSkillById = catchAsync(async (req: Request, res: Response, next: NextFu
 
 const updateSkill = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params
-    let skillData = req.body
     
-    // If logo file is uploaded, add the Cloudinary URL
-    if (req.file) {
-        skillData.logo = (req.file as any).path
-    }
+    // First, get the existing skill to preserve current logo if no new one is provided
+    const existingSkill = await skillServices.getSkillById(id)
     
-    const skill = await skillServices.updateSkill(id, skillData)
-    
-    if (!skill) {
+    if (!existingSkill) {
         return sendResponse(res, {
             success: false,
             statusCode: httpStatus.NOT_FOUND,
@@ -155,6 +160,23 @@ const updateSkill = catchAsync(async (req: Request, res: Response, next: NextFun
             data: null
         })
     }
+    
+    let skillData = req.body
+    
+    // Handle logo update logic:
+    // 1. If new file is uploaded, use the file path
+    // 2. If logo URL is provided in body and not empty, use that
+    // 3. If no logo provided or empty, remove from updateData to preserve existing
+    if (req.file) {
+        skillData.logo = (req.file as any).path
+    } else if (req.body.logo && req.body.logo.trim() !== '') {
+        skillData.logo = req.body.logo
+    } else {
+        // Remove logo field from update to preserve existing logo
+        delete skillData.logo
+    }
+    
+    const skill = await skillServices.updateSkill(id, skillData)
     
     sendResponse(res, {
         success: true,

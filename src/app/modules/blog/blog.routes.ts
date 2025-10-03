@@ -1,9 +1,7 @@
 import express from "express";
 import { BlogController } from "./blog.controller";
 import { checkAuth } from "../../middleware/CheckAuth";
-import { validateRequest } from "../../middleware/ValidateRequest";
 import { validateBlogFormData } from "../../middleware/ValidateFormData";
-import { BlogValidation } from "./blog.validation";
 import { multerUpload } from "../../config/multer.config";
 
 const router = express.Router();
