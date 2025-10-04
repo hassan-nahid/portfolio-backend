@@ -17,6 +17,13 @@ router.post(
   BlogController.createBlog
 );
 
+// Get blog statistics (Admin only) - MUST come before /admin/:id
+router.get(
+  "/admin/stats",
+  checkAuth("OWNER"),
+  BlogController.getBlogStats
+);
+
 // Get all blogs for admin (with query support for filtering)
 router.get(
   "/admin",
@@ -52,6 +59,8 @@ router.patch(
   checkAuth("OWNER"),
   BlogController.manageComment
 );
+
+// Remove duplicate stats route (moved up)
 
 // ================== PUBLIC ROUTES ==================
 

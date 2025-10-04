@@ -210,6 +210,180 @@ const getBlogComments = async (blogId: string, query: Record<string, unknown>) =
   return { result: paginatedComments, meta };
 };
 
+// Get comprehensive blog statistics
+const getBlogStats = async () => {
+  try {
+    // Get all blogs for statistics
+    const allBlogs = await Blog.find().populate('author', 'name email avatar');
+    
+    // Basic counts
+    const totalBlogs = allBlogs.length;
+    const publishedBlogs = allBlogs.filter(blog => blog.status === BlogStatus.PUBLISHED);
+    const draftBlogs = allBlogs.filter(blog => blog.status === BlogStatus.DRAFT);
+    const featuredBlogs = allBlogs.filter(blog => blog.isFeature === true);
+    
+    // Views and engagement
+    const totalViews = allBlogs.reduce((sum, blog) => sum + (blog.viewCount || 0), 0);
+    const totalComments = allBlogs.reduce((sum, blog) => sum + (blog.commentCount || 0), 0);
+    const averageViews = totalBlogs > 0 ? Math.round(totalViews / totalBlogs) : 0;
+    
+    // Comments statistics
+    const allComments = allBlogs.flatMap(blog => blog.comments || []);
+    const approvedComments = allComments.filter(comment => comment.isApproved);
+    const pendingComments = allComments.filter(comment => !comment.isApproved);
+    
+    // Category statistics
+    const categoryStats = allBlogs.reduce((acc, blog) => {
+      const category = blog.category;
+      if (!acc[category]) {
+        acc[category] = { count: 0, views: 0, comments: 0 };
+      }
+      acc[category].count += 1;
+      acc[category].views += blog.viewCount || 0;
+      acc[category].comments += blog.commentCount || 0;
+      return acc;
+    }, {} as Record<string, { count: number; views: number; comments: number }>);
+    
+    // Monthly statistics (last 12 months)
+    const now = new Date();
+    const monthlyStats = [];
+    
+    for (let i = 11; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const monthBlogs = allBlogs.filter(blog => {
+        const blogDate = new Date(blog.createdAt);
+        return blogDate >= monthDate && blogDate < nextMonthDate;
+      });
+      
+      const monthViews = monthBlogs.reduce((sum, blog) => sum + (blog.viewCount || 0), 0);
+      const monthComments = monthBlogs.reduce((sum, blog) => sum + (blog.commentCount || 0), 0);
+      
+      monthlyStats.push({
+        month: monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        blogs: monthBlogs.length,
+        views: monthViews,
+        comments: monthComments,
+        published: monthBlogs.filter(blog => blog.status === BlogStatus.PUBLISHED).length
+      });
+    }
+    
+    // Top performing blogs
+    const topBlogsByViews = publishedBlogs
+      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      .slice(0, 10)
+      .map(blog => ({
+        _id: blog._id,
+        title: blog.title,
+        slug: blog.slug,
+        views: blog.viewCount || 0,
+        comments: blog.commentCount || 0,
+        category: blog.category,
+        publishedAt: blog.publishedAt,
+        author: blog.author
+      }));
+    
+    // Recent activity (last 10 blogs)
+    const recentActivity = allBlogs
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 10)
+      .map(blog => ({
+        _id: blog._id,
+        title: blog.title,
+        slug: blog.slug,
+        status: blog.status,
+        updatedAt: blog.updatedAt,
+        author: blog.author
+      }));
+    
+    // Tag statistics
+    const tagStats = allBlogs.reduce((acc, blog) => {
+      blog.tags.forEach(tag => {
+        if (!acc[tag]) {
+          acc[tag] = { count: 0, views: 0 };
+        }
+        acc[tag].count += 1;
+        acc[tag].views += blog.viewCount || 0;
+      });
+      return acc;
+    }, {} as Record<string, { count: number; views: number }>);
+    
+    // Sort tags by usage
+    const topTags = Object.entries(tagStats)
+      .sort(([, a], [, b]) => b.count - a.count)
+      .slice(0, 20)
+      .map(([tag, stats]) => ({ tag, ...stats }));
+    
+    // Author statistics (if multiple authors exist)
+    const authorStats = allBlogs.reduce((acc, blog) => {
+      // Ensure author is populated
+      if (!blog.author || typeof blog.author === 'string') return acc;
+      
+      const authorId = blog.author._id.toString();
+      const authorName = (blog.author as any).name || 'Unknown Author';
+      
+      if (!acc[authorId]) {
+        acc[authorId] = {
+          name: authorName,
+          blogs: 0,
+          views: 0,
+          comments: 0,
+          published: 0
+        };
+      }
+      
+      acc[authorId].blogs += 1;
+      acc[authorId].views += blog.viewCount || 0;
+      acc[authorId].comments += blog.commentCount || 0;
+      if (blog.status === BlogStatus.PUBLISHED) {
+        acc[authorId].published += 1;
+      }
+      
+      return acc;
+    }, {} as Record<string, { name: string; blogs: number; views: number; comments: number; published: number }>);
+    
+    return {
+      overview: {
+        totalBlogs,
+        publishedBlogs: publishedBlogs.length,
+        draftBlogs: draftBlogs.length,
+        featuredBlogs: featuredBlogs.length,
+        totalViews,
+        totalComments: approvedComments.length,
+        pendingComments: pendingComments.length,
+        averageViews,
+        averageComments: totalBlogs > 0 ? Math.round(approvedComments.length / totalBlogs) : 0
+      },
+      categoryStats: Object.entries(categoryStats).map(([category, stats]) => ({
+        category,
+        ...stats
+      })),
+      monthlyStats,
+      topBlogsByViews,
+      recentActivity,
+      topTags,
+      authorStats: Object.entries(authorStats).map(([id, stats]) => ({
+        authorId: id,
+        ...stats
+      })),
+      engagement: {
+        totalViews,
+        totalComments: approvedComments.length,
+        viewsToCommentsRatio: approvedComments.length > 0 ? Math.round(totalViews / approvedComments.length) : 0,
+        averageViewsPerPost: averageViews,
+        mostViewedCategory: Object.entries(categoryStats).reduce((max, [category, stats]) => 
+          stats.views > (max.views || 0) ? { category, views: stats.views } : max, 
+          { category: '', views: 0 }
+        )
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching blog stats:', error);
+    throw new AppError(500, 'Failed to fetch blog statistics');
+  }
+};
+
 // ================== UTILITY SERVICES ==================
 
 // Get featured blogs
@@ -253,6 +427,9 @@ export const BlogService = {
   getBlogByIdentifier,
   addComment,
   getBlogComments,
+  
+  // Analytics services
+  getBlogStats,
   
   // Utility services
   getFeaturedBlogs,

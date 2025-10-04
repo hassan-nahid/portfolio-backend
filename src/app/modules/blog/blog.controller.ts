@@ -156,6 +156,18 @@ const getComments = catchAsync(async (req: Request, res: Response, next: NextFun
   });
 });
 
+// Get comprehensive blog statistics (Admin only)
+const getBlogStats = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const result = await BlogService.getBlogStats();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Blog statistics retrieved successfully",
+    data: result,
+  });
+});
+
 export const BlogController = {
   // Admin controllers
   createBlog,
@@ -164,6 +176,7 @@ export const BlogController = {
   updateBlog,
   deleteBlog,
   manageComment,
+  getBlogStats,
   
   // Public controllers
   getBlogs,
