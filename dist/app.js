@@ -22,7 +22,7 @@ app.use((0, cookie_parser_1.default)());
 app.use("/api/v1", routers_1.router);
 app.get("/", (req, res) => {
     res.status(200).json({
-        message: "Your System hacked!"
+        message: "Your System hacked! 😂😂😁"
     });
 });
 app.use(globalErrorHandler_1.globalErrorHandler);
